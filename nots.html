@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>shaid notes</title>
+  
+      <link rel="stylesheet" type="text/css" href="style.css">
+	      <link rel="icon" href="shaid.png" type="image/x-icon">
+
+ </head>
+
+<body>
+  <div class="menu-bar">
+    <a href="#" class="logo">Shaid Notes</a>
+    <div class="menu-items">
+      <a href="#home" class="menu-button">Home</a>
+      <a href="about.html" class="menu-button">About</a>
+      <a href="service.html" class="menu-button">Services</a>
+      <a href="contactus.html" class="menu-button">Contact</a>
+    </div>
+  </div>
+
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.21.0/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    function App() {
+      const [products, setProducts] = useState([]);
+      const [productName, setProductName] = useState('');
+      const [productPrice, setProductPrice] = useState('');
+      const [date, setDate] = useState('');
+      const [time, setTime] = useState('');
+      const [image, setImage] = useState(null);
+      const [imageName, setImageName] = useState('');  // Added state to store file name
+      const [modalImage, setModalImage] = useState(null);
+      const [editingIndex, setEditingIndex] = useState(null);
+
+      // Function to get current time in HH:mm format
+      const getCurrentTime = () => {
+        const now = new Date();
+        let hours = now.getHours();
+        let minutes = now.getMinutes();
+        if (minutes < 10) {
+          minutes = '0' + minutes;
+        }
+        return `${hours}:${minutes}`;
+      };
+
+      useEffect(() => {
+        // Set current date and time when the component loads
+        const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        setDate(currentDate);
+        setTime(getCurrentTime());
+      }, []);
+
+      const handleImageUpload = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            setImage(reader.result);
+          };
+          reader.readAsDataURL(file);
+          setImageName(file.name);  // Set file name
+        }
+      };
+
+      const addOrUpdateProduct = () => {
+        if (!productName || !productPrice || !date || !time || !image) {
+          alert('Please fill all fields and upload an image.');
+          return;
+        }
+
+        const newProduct = {
+          name: productName,
+          price: parseFloat(productPrice),
+          dateTime: `${date} ${time}`,
+          image,
+        };
+
+        if (editingIndex !== null) {
+          const updatedProducts = [...products];
+          updatedProducts[editingIndex] = newProduct;
+          setProducts(updatedProducts);
+          setEditingIndex(null);
+        } else {
+          setProducts([...products, newProduct]);
+        }
+
+        setProductName('');
+        setProductPrice('');
+        setDate('');
+        setTime(getCurrentTime()); // Reset the time to the current time
+        setImage(null);
+        setImageName('');  // Reset file name
+      };
+
+      const deleteProduct = (index) => {
+        const newProducts = products.filter((_, i) => i !== index);
+        setProducts(newProducts);
+      };
+
+      const editProduct = (index) => {
+        const product = products[index];
+        setProductName(product.name);
+        setProductPrice(product.price);
+        const [editDate, editTime] = product.dateTime.split(' ');
+        setDate(editDate);
+        setTime(editTime);
+        setImage(product.image);
+        setEditingIndex(index);
+      };
+
+      const printProductDetails = () => {
+        const printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write('<h1>Product Details</h1>');
+        printWindow.document.write('<table border="1" style="width: 100%; text-align: left;"><tr><th>Name</th><th>Price</th><th>Date & Time</th></tr>');
+
+        let total = 0; // Variable to keep track of the total price
+
+        products.forEach(product => {
+          printWindow.document.write(`<tr><td>${product.name}</td><td>${product.price.toFixed(2)}</td><td>${product.dateTime}</td></tr>`);
+          total += product.price; // Add the price of the product to the total
+        });
+
+        printWindow.document.write('</table>');
+
+        // Add the total to the printed document
+        printWindow.document.write(`<h3>Total: $${total.toFixed(2)}</h3>`);
+        
+        printWindow.document.close();
+        printWindow.print();
+      };
+
+      const calculateTotalSum = () => {
+        const totalSum = products.reduce((total, product) => total + product.price, 0);
+        alert(`Total Sum of Products: $${totalSum.toFixed(2)}`);
+      };
+
+      return (
+        <div className="container">
+          <h1>Product Recorder</h1>
+
+          <div className="form-container">
+            <input
+              type="text"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              placeholder="Product Name"
+            />
+            <input
+              type="text"
+              value={productPrice}
+              onChange={(e) => setProductPrice(e.target.value)}
+              placeholder="Product Price"
+            />
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+
+            <div className="file-input-container">
+              <label className="file-input-button">
+                Choose File
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="file-input"
+                />
+              </label>
+              {/* Display selected file name */}
+              {imageName && <div className="file-name">{imageName}</div>}
+            </div>
+            
+            <button onClick={addOrUpdateProduct}>{editingIndex !== null ? "Update Product" : "Add Product"}</button>
+          </div>
+
+          <div className="export-import-buttons">
+            <button onClick={printProductDetails}>Print Product Details</button>
+            <button onClick={calculateTotalSum}>Total Sum</button>
+          </div>
+
+          <div className="product-list">
+            {/* Headers for Product Name, Image, Price, Date, and Time */}
+            <div className="product-list-header">
+              <span>Image</span>
+              <span>Product Name</span>
+              <span>Price</span>
+              <span>Date & Time</span>
+              <span>Actions</span>
+            </div>
+
+            {products.length > 0 ? (
+              products.map((product, index) => (
+                <div key={index} className="product-item">
+                  <img
+                    src={product.image}
+                    alt="Product"
+                    onClick={() => setModalImage(product.image)}
+                  />
+                  <span>{product.name}</span>
+                  <span>${product.price.toFixed(2)}</span>
+                  <span>{product.dateTime}</span>
+                  <div>
+                    <button className="edit" onClick={() => editProduct(index)}>Edit</button>
+                    <button onClick={() => deleteProduct(index)}>Delete</button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div>No products added yet.</div>
+            )}
+          </div>
+
+          {modalImage && (
+            <div className="modal" onClick={() => setModalImage(null)}>
+              <img src={modalImage} alt="Full View" />
+              <button className="modal-close" onClick={() => setModalImage(null)}>×</button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+
+</html>
